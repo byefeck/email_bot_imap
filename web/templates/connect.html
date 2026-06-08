@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Подключение почты</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; color: #222; }
+        h1 { font-size: 22px; }
+        label { display: block; margin-top: 16px; font-weight: 600; font-size: 14px; }
+        input { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+        button { margin-top: 24px; width: 100%; padding: 12px; border: none; border-radius: 8px; background: #2AABEE; color: #fff; font-size: 16px; cursor: pointer; }
+        button:hover { background: #1c93d6; }
+        .hint { margin-top: 6px; font-size: 13px; color: #666; }
+        .error { margin-top: 16px; padding: 10px 12px; border-radius: 8px; background: #fdeaea; color: #b3261e; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>📬 Подключение почты по IMAP</h1>
+    <p>Заполните данные вашего почтового ящика — бот будет присылать новые письма прямо в Telegram.</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/connect">
+        <input type="hidden" name="telegram_id" value="{{ telegram_id }}">
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ prefill_email }}" required>
+
+        <label for="imap_host">IMAP-сервер</label>
+        <input type="text" id="imap_host" name="imap_host" value="{{ prefill_host }}" placeholder="imap.example.com" required>
+
+        <label for="imap_port">Порт</label>
+        <input type="number" id="imap_port" name="imap_port" value="{{ prefill_port }}" required>
+
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" required>
+        <div class="hint">
+            Для Gmail и Mail.ru обычный пароль аккаунта не подойдёт — создайте
+            <strong>пароль приложения</strong> в настройках безопасности и
+            используйте его здесь. Пароль передаётся только при отправке формы
+            и нигде не отображается в ссылках.
+        </div>
+
+        <button type="submit">Подключить</button>
+    </form>
+
+    <script>
+        const presets = {{ presets | tojson }};
+        const emailInput = document.getElementById("email");
+        const hostInput = document.getElementById("imap_host");
+        const portInput = document.getElementById("imap_port");
+        let hostTouched = hostInput.value.length > 0;
+
+        hostInput.addEventListener("input", () => { hostTouched = true; });
+
+        emailInput.addEventListener("blur", () => {
+            if (hostTouched) return;
+            const domain = (emailInput.value.split("@")[1] || "").toLowerCase();
+            const preset = presets[domain];
+            if (preset) {
+                hostInput.value = preset[0];
+                portInput.value = preset[1];
+            }
+        });
+    </script>
+</body>
+</html>
