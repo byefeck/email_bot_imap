@@ -1,7 +1,9 @@
 from email.header import decode_header
+from email.utils import parsedate_to_datetime
 
 from message.parser import parse_sender
 from message.cleaner import clean_html
+from message.attachments import extract_attachments
 
 def _decode_header_value(value):
     if not value:
@@ -23,6 +25,14 @@ def _decode_payload(part):
         return payload.decode(charset, errors="ignore")
     except LookupError:
         return payload.decode("utf-8", errors="ignore")
+
+def _decode_date(value):
+    if not value:
+        return ""
+    try:
+        return parsedate_to_datetime(value).strftime("%d.%m.%Y %H:%M")
+    except (TypeError, ValueError):
+        return ""
 
 def _is_attachment(part):
     if (part.get_content_disposition() or "").lower() == "attachment":
@@ -49,26 +59,22 @@ def get_text(msg):
         return text_html
     return ""
 
-def has_attachments(msg):
-    for part in msg.walk():
-        if part.is_multipart():
-            continue
-        if _is_attachment(part):
-            return True
-    return False
-
 def imap_message_to_dict(msg):
     """Приводит email.message.Message из IMAP к dict, который ожидает format_msg —
     тому же, что раньше возвращал gmail/parse_message (sender_name, sender_email,
-    subject, text, has_att)."""
+    subject, text, has_att), плюс список реальных вложений (attachments) для
+    последующей отправки в Telegram."""
     sender = _decode_header_value(msg.get("From")) or "Неизвестно"
     name, sender_email = parse_sender(sender)
     subject = _decode_header_value(msg.get("Subject")) or "Без темы"
+    attachments = extract_attachments(msg)
 
     return {
         "sender_name": name,
         "sender_email": sender_email,
         "subject": subject,
+        "date": _decode_date(msg.get("Date")),
         "text": get_text(msg),
-        "has_att": has_attachments(msg)
+        "has_att": bool(attachments),
+        "attachments": attachments
     }
