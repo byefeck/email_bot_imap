@@ -1,0 +1,12 @@
+.env
+.git
+.gitignore
+venv
+__pycache__
+*.pyc
+local.db
+errors.log
+.DS_Store
+AGENT_HANDOFF.md
+ТЗ.md
+README.md
